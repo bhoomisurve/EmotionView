@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmotionView Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Header -->
+    <header class="bg-blue-900 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fas fa-brain text-2xl text-blue-300"></i>
+                <h1 class="text-xl font-bold">EmotionView Dashboard</h1>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button id="refresh-btn" class="px-3 py-1 bg-blue-700 rounded hover:bg-blue-600">
+                    <i class="fas fa-sync-alt mr-1"></i> Refresh
+                </button>
+                <a href="/" class="px-3 py-1 bg-blue-700 rounded hover:bg-blue-600">
+                    <i class="fas fa-video mr-1"></i> Interview
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container mx-auto px-4 py-6">
+        <!-- Overview Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-blue-100 text-blue-600">
+                        <i class="fas fa-user-tie text-2xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <h2 class="text-gray-600">Total Interviews</h2>
+                        <p class="text-2xl font-bold" id="total-interviews">{{ interviews|length }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-green-100 text-green-600">
+                        <i class="fas fa-check-circle text-2xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <h2 class="text-gray-600">Completed</h2>
+                        <p class="text-2xl font-bold" id="completed-interviews">
+                            {{ interviews|selectattr('status', 'equalto', 'completed')|list|length }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-yellow-100 text-yellow-600">
+                        <i class="fas fa-clock text-2xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <h2 class="text-gray-600">In Progress</h2>
+                        <p class="text-2xl font-bold" id="in-progress-interviews">
+                            {{ interviews|selectattr('status', 'equalto', 'in_progress')|list|length }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-purple-100 text-purple-600">
+                        <i class="fas fa-smile-beam text-2xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <h2 class="text-gray-600">Positive Emotions</h2>
+                        <p class="text-2xl font-bold" id="positive-emotions">--</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters and Search -->
+        <div class="bg-white rounded-lg shadow mb-6 p-4">
+            <div class="flex flex-col md:flex-row justify-between items-center space-y-3 md:space-y-0">
+                <div class="flex flex-col md:flex-row items-start md:items-center space-y-3 md:space-y-0 md:space-x-4">
+                    <div>
+                        <label for="position-filter" class="block text-sm font-medium text-gray-700">Position</label>
+                        <select id="position-filter" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                            <option value="">All Positions</option>
+                            <option value="software_engineer">Software Engineer</option>
+                            <option value="data_scientist">Data Scientist</option>
+                            <option value="marketing">Marketing</option>
+                            <option value="general">General</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="date-filter" class="block text-sm font-medium text-gray-700">Date Range</label>
+                        <select id="date-filter" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                            <option value="">All Time</option>
+                            <option value="today">Today</option>
+                            <option value="week">This Week</option>
+                            <option value="month">This Month</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="w-full md:w-1/3">
+                    <label for="search" class="block text-sm font-medium text-gray-700">Search</label>
+                    <div class="mt-1 relative rounded-md shadow-sm">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-search text-gray-400"></i>
+                        </div>
+                        <input type="text" id="search" class="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md py-2" placeholder="Search by name or email">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Interviews -->
+        <div class="bg-white rounded-lg shadow mb-6">
+            <div class="p-4 border-b border-gray-200 flex justify-between items-center">
+                <h2 class="text-lg font-semibold text-gray-700">Recent Interviews</h2>
+                <div class="flex space-x-2">
+                    <button id="export-csv" class="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700">
+                        <i class="fas fa-file-csv mr-1"></i> Export CSV
+                    </button>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Candidate
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Position
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Date
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Status
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Primary Emotion
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Actions
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="interviews-table-body" class="bg-white divide-y divide-gray-200">
+                        {% for interview in interviews %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">
+                                    {{ interview.candidate.name or 'Unnamed Candidate' }}
+                                </div>
+                                <div class="text-sm text-gray-500">
+                                    {{ interview.candidate.email or 'No email' }}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">{{ interview.candidate.position or 'General' }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">{{ interview.start_time }}</div>
+                                {% if interview.end_time %}
+                                <div class="text-sm text-gray-500">Ended: {{ interview.end_time }}</div>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                    {% if interview.status == 'completed' %}
+                                        bg-green-100 text-green-800
+                                    {% elif interview.status == 'in_progress' %}
+                                        bg-yellow-100 text-yellow-800
+                                    {% else %}
+                                        bg-gray-100 text-gray-800
+                                    {% endif %}">
+                                    {{ interview.status }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="emotion-badge" data-id="{{ interview._id }}">
+                                    <i class="fas fa-spinner fa-spin"></i> Loading...
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <div class="flex space-x-2">
+                                    <button class="text-blue-600 hover:text-blue-900 view-summary-btn" 
+                                            data-id="{{ interview._id }}">
+                                        <i class="fas fa-eye mr-1"></i> View
+                                    </button>
+                                    <button class="text-red-600 hover:text-red-900 delete-btn" 
+                                            data-id="{{ interview._id }}">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="px-6 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+                <div class="text-sm text-gray-500">
+                    Showing <span id="showing-count">{{ interviews|length }}</span> interviews
+                </div>
+                <div class="flex space-x-2">
+                    <button id="prev-page" class="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50">
+                        Previous
+                    </button>
+                    <button id="next-page" class="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50">
+                        Next
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Emotion Analytics -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white rounded-lg shadow">
+                <div class="p-4 border-b border-gray-200 flex justify-between items-center">
+                    <h2 class="text-lg font-semibold text-gray-700">Emotion Distribution</h2>
+                    <select id="emotion-chart-type" class="text-sm border-gray-300 rounded">
+                        <option value="bar">Bar Chart</option>
+                        <option value="doughnut">Doughnut Chart</option>
+                        <option value="polarArea">Polar Area</option>
+                    </select>
+                </div>
+                <div class="p-4">
+                    <canvas id="emotion-chart" height="300"></canvas>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow">
+                <div class="p-4 border-b border-gray-200 flex justify-between items-center">
+                    <h2 class="text-lg font-semibold text-gray-700">Interview Performance by Position</h2>
+                    <select id="metric-selector" class="text-sm border-gray-300 rounded">
+                        <option value="overall">Overall Performance</option>
+                        <option value="emotions">Emotional Stability</option>
+                        <option value="communication">Communication Skills</option>
+                    </select>
+                </div>
+                <div class="p-4">
+                    <canvas id="position-chart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Emotion Timeline (New) -->
+        <div class="mt-6 bg-white rounded-lg shadow">
+            <div class="p-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-700">Emotion Timeline</h2>
+            </div>
+            <div class="p-4">
+                <div class="mb-4">
+                    <label for="interview-selector" class="block text-sm font-medium text-gray-700">Select Interview</label>
+                    <select id="interview-selector" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                        <option value="">Select an interview</option>
+                        {% for interview in interviews %}
+                        <option value="{{ interview._id }}">
+                            {{ interview.candidate.name or 'Unnamed' }} - {{ interview.start_time }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <canvas id="emotion-timeline-chart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Interview Summary Modal -->
+    <div id="summary-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-screen overflow-y-auto">
+            <div class="p-6">
+                <!-- Modal Header -->
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold text-gray-800">Interview Summary</h2>
+                    <button id="close-modal" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <!-- Modal Tabs -->
+                <div class="border-b border-gray-200 mb-4">
+                    <ul class="flex flex-wrap -mb-px" id="summary-tabs">
+                        <li class="mr-2">
+                            <button class="inline-block py-2 px-4 text-sm font-medium text-center text-blue-600 border-b-2 border-blue-600 active" 
+                                    data-tab="overview">Overview</button>
+                        </li>
+                        <li class="mr-2">
+                            <button class="inline-block py-2 px-4 text-sm font-medium text-center text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300" 
+                                    data-tab="emotions">Emotion Analysis</button>
+                        </li>
+                        <li class="mr-2">
+                            <button class="inline-block py-2 px-4 text-sm font-medium text-center text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300" 
+                                    data-tab="qa">Questions & Answers</button>
+                        </li>
+                        <li class="mr-2">
+                            <button class="inline-block py-2 px-4 text-sm font-medium text-center text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300" 
+                                    data-tab="notes">Notes</button>
+                        </li>
+                    </ul>
+                </div>
+                
+                <!-- Tab Content -->
+                <div class="tab-content">
+                    <!-- Overview Tab -->
+                    <div id="overview-tab" class="tab-pane active">
+                        <div class="mb-6">
+                            <h3 class="text-lg font-semibold text-gray-700 mb-2">Candidate Information</h3>
+                            <div id="candidate-info" class="bg-gray-50 rounded-md p-4 text-gray-700"></div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-700 mb-2">Emotion Summary</h3>
+                                <div class="h-60">
+                                    <canvas id="emotion-summary-chart"></canvas>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-700 mb-2">Key Metrics</h3>
+                                <div id="key-metrics" class="grid grid-cols-2 gap-3">
+                                    <div class="bg-blue-50 p-3 rounded-md">
+                                        <div class="text-sm text-blue-600">Interview Duration</div>
+                                        <div id="interview-duration" class="font-bold text-lg">--:--</div>
+                                    </div>
+                                    <div class="bg-green-50 p-3 rounded-md">
+                                        <div class="text-sm text-green-600">Positive Emotions</div>
+                                        <div id="positive-ratio" class="font-bold text-lg">--%</div>
+                                    </div>
+                                    <div class="bg-yellow-50 p-3 rounded-md">
+                                        <div class="text-sm text-yellow-600">Question Count</div>
+                                        <div id="question-count" class="font-bold text-lg">--</div>
+                                    </div>
+                                    <div class="bg-purple-50 p-3 rounded-md">
+                                        <div class="text-sm text-purple-600">Avg Response Length</div>
+                                        <div id="avg-response-length" class="font-bold text-lg">--</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <h3 class="text-lg font-semibold text-gray-700 mb-2">AI Generated Summary</h3>
+                            <div id="summary-content" class="bg-gray-50 rounded-md p-4 text-gray-700"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Emotions Tab -->
+                    <div id="emotions-tab" class="tab-pane hidden">
+                        <div class="mb-6">
+                            <h3 class="text-lg font-semibold text-gray-700 mb-2">Emotion Timeline</h3>
+                            <div class="h-64">
+                                <canvas id="emotion-timeline"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-700 mb-2">Question-Emotion Correlation</h3>
+                                <div class="bg-gray-50 rounded-md p-4 h-64 overflow-y-auto" id="question-emotion-list">
+                                    <!-- Dynamically filled -->
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-700 mb-2">Emotion Analysis</h3>
+                                <div class="bg-gray-50 rounded-md p-4 h-64 overflow-y-auto" id="emotion-analysis">
+                                    <!-- Dynamically filled -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Q&A Tab -->
+                    <div id="qa-tab" class="tab-pane hidden">
+                        <div class="mb-4">
+                            <div class="flex justify-end mb-2">
+                                <button id="export-qa-btn" class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
+                                    <i class="fas fa-file-download mr-1"></i> Export Q&A
+                                </button>
+                            </div>
+                            <div id="qa-content" class="space-y-4"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Notes Tab -->
+                    <div id="notes-tab" class="tab-pane hidden">
+                        <div class="mb-4">
+                            <label for="interview-notes" class="block text-sm font-medium text-gray-700 mb-2">Interview Notes</label>
+                            <textarea id="interview-notes" rows="12" class="w-full p-3 border border-gray-300 rounded-md" 
+                                    placeholder="Add your notes about this interview..."></textarea>
+                        </div>
+                        <div class="flex justify-end">
+                            <button id="save-notes-btn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
+                                <i class="fas fa-save mr-1"></i> Save Notes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Modal Footer -->
+                <div class="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
+                    <button id="export-pdf-btn" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition">
+                        <i class="fas fa-file-pdf mr-1"></i> Export Report
+                    </button>
+                    <button id="share-btn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
+                        <i class="fas fa-share-alt mr-1"></i> Share
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Delete Interview?</h3>
+            <p class="text-sm text-gray-500 mb-4">Are you sure you want to delete this interview? This action cannot be undone.</p>
+            <div class="flex justify-end space-x-3">
+                <button id="cancel-delete" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition">
+                    Cancel
+                </button>
+                <button id="confirm-delete" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition">
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize charts with mock data (will be replaced with real data in production)
+            initCharts();
+            loadEmotionBadges();
+            updatePositiveEmotionsMetric();
+            
+            // Tab handling
+            document.querySelectorAll('#summary-tabs button').forEach(button => {
+                button.addEventListener('click', function() {
+                    // Remove active classes
+                    document.querySelectorAll('#summary-tabs button').forEach(b => {
+                        b.classList.remove('text-blue-600', 'border-blue-600');
+                        b.classList.add('text-gray-500', 'border-transparent');
+                    });
+                    
+                    // Add active class to clicked tab
+                    this.classList.remove('text-gray-500', 'border-transparent');
+                    this.classList.add('text-blue-600', 'border-blue-600');
+                    
+                    // Hide all tab panes
+                    document.querySelectorAll('.tab-pane').forEach(pane => {
+                        pane.classList.add('hidden');
+                        pane.classList.remove('active');
+                    });
+                    
+                    // Show the selected tab pane
+                    const tabName = this.getAttribute('data-tab');
+                    const tabPane = document.getElementById(tabName + '-tab');
+                    tabPane.classList.remove('hidden');
+                    tabPane.classList.add('active');
+                });
+            });
+            
+            // Add event listeners for summary view buttons
+            document.querySelectorAll('.view-summary-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const interviewId = this.getAttribute('data-id');
+                    showInterviewSummary(interviewId);
+                });
+            });
+            
+            // Close modal functionality
+            document.getElementById('close-modal').addEventListener('click', function() {
+                document.getElementById('summary-modal').classList.add('hidden');
+            });
+            
+            // Save notes functionality
+            document.getElementById('save-notes-btn').addEventListener('click', function() {
+                const interviewId = this.getAttribute('data-interview-id');
+                const notes = document.getElementById('interview-notes').value;
+                
+                fetch('/save_notes', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        notes: notes,
+                        interview_id: interviewId
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const saveBtn = this;
+                    saveBtn.innerHTML = '<i class="fas fa-check mr-1"></i> Saved!';
+                    setTimeout(() => {
+                        saveBtn.innerHTML = '<i class="fas fa-save mr-1"></i> Save Notes';
+                    }, 1500);
+                });
+            });
+            
+            // Export PDF functionality
+            document.getElementById('export-pdf-btn').addEventListener('click', function() {
+                const notification = document.createElement('div');
+                notification.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg';
+                notification.innerHTML = '<i class="fas fa-file-download mr-2"></i> Preparing PDF download...';
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.innerHTML = '<i class="fas fa-check-circle mr-2"></i> PDF downloaded successfully!';
+                    setTimeout(() => {
+                        document.body.removeChild(notification);
+                    }, 3000);
+                }, 1500);
+            });
+            
+            // Share button
+            document.getElementById('share-btn').addEventListener('click', function() {
+                const notification = document.createElement('div');
+                notification.className = 'fixed bottom-4 right-4 bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg';
+                notification.innerHTML = '<i class="fas fa-share-alt mr-2"></i> Shareable link copied to clipboard!';
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 3000);
+            });
+            
+            // Emotion chart type change
+            document.getElementById('emotion-chart-type').addEventListener('change', function() {
+                updateEmotionChart(this.value);
+            });
+            
+            // Metric selector change
+            document.getElementById('metric-selector').addEventListener('change', function() {
+                updatePositionChart(this.value);
+            });
+            
+            // Interview selector for emotion timeline
+            document.getElementById('interview-selector').addEventListener('change', function() {
+                const interviewId = this.value;
+                if (interviewId) {
+                    loadEmotionTimeline(interviewId);
+                }
+            });
+            
+            // Filter and search functionality
+            document.getElementById('search').addEventListener('input', filterInterviews);
+            document.getElementById('position-filter').addEventListener('change', filterInterviews);
+            document.getElementById('date-filter').addEventListener('change', filterInterviews);
+            
+            // Refresh button
+document.getElementById('refresh-btn').addEventListener('click', function() {
+    const button = this;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Refreshing...';
+    
+    // Simulate refresh with a fetch call
+    setTimeout(() => {
+        loadEmotionBadges();
+        updatePositiveEmotionsMetric();
+        
+        // Reset button text
+        button.innerHTML = '<i class="fas fa-sync-alt mr-1"></i> Refresh';
+        
+        // Show success notification
+        const notification = document.createElement('div');
+        notification.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg';
+        notification.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Dashboard refreshed!';
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            document.body.removeChild(notification);
+        }, 3000);
+    }, 1000);
+});
+
+// Delete interview functionality
+document.querySelectorAll('.delete-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const interviewId = this.getAttribute('data-id');
+        document.getElementById('confirm-delete').setAttribute('data-interview-id', interviewId);
+        document.getElementById('delete-modal').classList.remove('hidden');
+    });
+});
+
+document.getElementById('cancel-delete').addEventListener('click', function() {
+    document.getElementById('delete-modal').classList.add('hidden');
+});
+
+document.getElementById('confirm-delete').addEventListener('click', function() {
+    const interviewId = this.getAttribute('data-interview-id');
+    
+    // Simulate delete operation
+    const row = document.querySelector(`.delete-btn[data-id="${interviewId}"]`).closest('tr');
+    row.classList.add('bg-red-50');
+    row.style.transition = 'opacity 0.5s';
+    row.style.opacity = '0.5';
+    
+    document.getElementById('delete-modal').classList.add('hidden');
+    
+    // Update counters
+    const totalInterviews = document.getElementById('total-interviews');
+    totalInterviews.textContent = (parseInt(totalInterviews.textContent) - 1).toString();
+    
+    // Show success notification
+    const notification = document.createElement('div');
+    notification.className = 'fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg';
+    notification.innerHTML = '<i class="fas fa-trash-alt mr-2"></i> Interview deleted successfully!';
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        document.body.removeChild(notification);
+    }, 3000);
+});
+
+// Export CSV functionality
+document.getElementById('export-csv').addEventListener('click', function() {
+    const notification = document.createElement('div');
+    notification.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg';
+    notification.innerHTML = '<i class="fas fa-file-download mr-2"></i> Preparing CSV download...';
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.innerHTML = '<i class="fas fa-check-circle mr-2"></i> CSV downloaded successfully!';
+        setTimeout(() => {
+            document.body.removeChild(notification);
+        }, 3000);
+    }, 1500);
+});
+
+// Export Q&A functionality
+document.getElementById('export-qa-btn').addEventListener('click', function() {
+    const notification = document.createElement('div');
+    notification.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg';
+    notification.innerHTML = '<i class="fas fa-file-download mr-2"></i> Preparing Q&A export...';
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Q&A data exported successfully!';
+        setTimeout(() => {
+            document.body.removeChild(notification);
+        }, 3000);
+    }, 1500);
+});
+
+// Pagination functionality
+document.getElementById('prev-page').addEventListener('click', function() {
+    // Implement pagination logic here
+    if (!this.classList.contains('disabled')) {
+        // Previous page logic
+    }
+});
+
+document.getElementById('next-page').addEventListener('click', function() {
+    // Implement pagination logic here
+    if (!this.classList.contains('disabled')) {
+        // Next page logic
+    }
+});
+
+// Function to load emotion badges for each interview
+function loadEmotionBadges() {
+    document.querySelectorAll('.emotion-badge').forEach(badge => {
+        const interviewId = badge.getAttribute('data-id');
+        
+        // Simulate API call to get emotion data
+        setTimeout(() => {
+            const emotions = ['Happy', 'Neutral', 'Sad', 'Angry', 'Surprise'];
+            const emotion = emotions[Math.floor(Math.random() * emotions.length)];
+            
+            let color = 'gray';
+            let icon = 'fa-meh';
+            
+            if (emotion === 'Happy') {
+                color = 'green';
+                icon = 'fa-smile-beam';
+            } else if (emotion === 'Sad') {
+                color = 'blue';
+                icon = 'fa-sad-tear';
+            } else if (emotion === 'Angry') {
+                color = 'red';
+                icon = 'fa-angry';
+            } else if (emotion === 'Surprise') {
+                color = 'yellow';
+                icon = 'fa-surprise';
+            } else {
+                color = 'gray';
+                icon = 'fa-meh';
+            }
+            
+            badge.innerHTML = `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-${color}-100 text-${color}-800">
+                <i class="fas ${icon} mr-1"></i> ${emotion}
+            </span>`;
+        }, 500);
+    });
+}
+
+// Function to update the positive emotions metric
+function updatePositiveEmotionsMetric() {
+    // Simulate calculation
+    const positivePercentage = Math.floor(Math.random() * 40) + 60; // 60-100%
+    document.getElementById('positive-emotions').textContent = `${positivePercentage}%`;
+}
+
+// Function to initialize charts
+function initCharts() {
+    // Emotion Distribution Chart
+    const emotionCtx = document.getElementById('emotion-chart').getContext('2d');
+    window.emotionChart = new Chart(emotionCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Happy', 'Neutral', 'Sad', 'Angry', 'Surprise', 'Fear', 'Disgust'],
+            datasets: [{
+                label: 'Emotion Count',
+                data: [65, 53, 20, 14, 28, 12, 8],
+                backgroundColor: [
+                    'rgba(75, 192, 192, 0.7)',
+                    'rgba(201, 203, 207, 0.7)',
+                    'rgba(54, 162, 235, 0.7)',
+                    'rgba(255, 99, 132, 0.7)',
+                    'rgba(255, 205, 86, 0.7)',
+                    'rgba(153, 102, 255, 0.7)',
+                    'rgba(255, 159, 64, 0.7)'
+                ],
+                borderColor: [
+                    'rgb(75, 192, 192)',
+                    'rgb(201, 203, 207)',
+                    'rgb(54, 162, 235)',
+                    'rgb(255, 99, 132)',
+                    'rgb(255, 205, 86)',
+                    'rgb(153, 102, 255)',
+                    'rgb(255, 159, 64)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                title: {
+                    display: true,
+                    text: 'Overall Emotion Distribution'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+    
+    // Position Performance Chart
+    const positionCtx = document.getElementById('position-chart').getContext('2d');
+    window.positionChart = new Chart(positionCtx, {
+        type: 'radar',
+        data: {
+            labels: ['Software Engineer', 'Data Scientist', 'Marketing', 'General'],
+            datasets: [{
+                label: 'Overall Performance',
+                data: [85, 78, 90, 75],
+                fill: true,
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                borderColor: 'rgb(54, 162, 235)',
+                pointBackgroundColor: 'rgb(54, 162, 235)',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: 'rgb(54, 162, 235)'
+            }]
+        },
+        options: {
+            elements: {
+                line: {
+                    borderWidth: 3
+                }
+            },
+            scales: {
+                r: {
+                    angleLines: {
+                        display: true
+                    },
+                    suggestedMin: 0,
+                    suggestedMax: 100
+                }
+            }
+        }
+    });
+    
+    // Emotion Timeline Chart (empty initially, will be populated on interview select)
+    const timelineCtx = document.getElementById('emotion-timeline-chart').getContext('2d');
+    window.emotionTimelineChart = new Chart(timelineCtx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: []
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Select an interview to view emotion timeline'
+                },
+                legend: {
+                    position: 'top',
+                }
+            }
+        }
+    });
+}
+
+// Function to update emotion chart type
+function updateEmotionChart(chartType) {
+    const currentData = window.emotionChart.data;
+    window.emotionChart.destroy();
+    
+    const emotionCtx = document.getElementById('emotion-chart').getContext('2d');
+    window.emotionChart = new Chart(emotionCtx, {
+        type: chartType,
+        data: currentData,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: chartType !== 'bar'
+                },
+                title: {
+                    display: true,
+                    text: 'Overall Emotion Distribution'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    display: chartType === 'bar'
+                }
+            }
+        }
+    });
+}
+
+// Function to update position chart based on selected metric
+function updatePositionChart(metric) {
+    let data;
+    let title;
+    
+    switch(metric) {
+        case 'emotions':
+            data = [82, 75, 88, 70];
+            title = 'Emotional Stability by Position';
+            break;
+        case 'communication':
+            data = [80, 85, 92, 78];
+            title = 'Communication Skills by Position';
+            break;
+        default:
+            data = [85, 78, 90, 75];
+            title = 'Overall Performance by Position';
+    }
+    
+    window.positionChart.data.datasets[0].data = data;
+    window.positionChart.options.plugins.title.text = title;
+    window.positionChart.update();
+}
+
+// Function to load emotion timeline for a specific interview
+function loadEmotionTimeline(interviewId) {
+    // Simulate API call to get emotion data
+    fetch(`/get_emotion_data?interview_id=${interviewId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success' && data.data.length > 0) {
+                const timestamps = data.data.map(item => item.timestamp.split(' ')[1]); // Extract time part
+                
+                // Create datasets for each emotion
+                const emotionTypes = ['Happy', 'Sad', 'Angry', 'Surprise', 'Fear', 'Disgust', 'Neutral'];
+                const colors = [
+                    'rgba(75, 192, 192, 1)',  // Happy - green
+                    'rgba(54, 162, 235, 1)',  // Sad - blue
+                    'rgba(255, 99, 132, 1)',  // Angry - red
+                    'rgba(255, 205, 86, 1)',  // Surprise - yellow
+                    'rgba(153, 102, 255, 1)', // Fear - purple
+                    'rgba(255, 159, 64, 1)',  // Disgust - orange
+                    'rgba(201, 203, 207, 1)'  // Neutral - gray
+                ];
+                
+                const datasets = emotionTypes.map((emotion, index) => {
+                    // Generate data showing 1 when the emotion matches, 0 otherwise
+                    const emotionData = data.data.map(item => 
+                        item.emotion === emotion ? item.confidence || 1 : 0
+                    );
+                    
+                    return {
+                        label: emotion,
+                        data: emotionData,
+                        borderColor: colors[index],
+                        backgroundColor: colors[index].replace('1)', '0.2)'),
+                        tension: 0.2,
+                        pointRadius: 3
+                    };
+                });
+                
+                // Update chart
+                window.emotionTimelineChart.data.labels = timestamps;
+                window.emotionTimelineChart.data.datasets = datasets;
+                window.emotionTimelineChart.options.plugins.title.text = 'Emotion Timeline';
+                window.emotionTimelineChart.update();
+            } else {
+                // Handle empty data
+                window.emotionTimelineChart.data.labels = [];
+                window.emotionTimelineChart.data.datasets = [];
+                window.emotionTimelineChart.options.plugins.title.text = 'No emotion data available';
+                window.emotionTimelineChart.update();
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching emotion data:', error);
+            window.emotionTimelineChart.options.plugins.title.text = 'Error loading emotion data';
+            window.emotionTimelineChart.update();
+        });
+}
+
+// Function to show interview summary
+function showInterviewSummary(interviewId) {
+    document.getElementById('summary-modal').classList.remove('hidden');
+    document.getElementById('save-notes-btn').setAttribute('data-interview-id', interviewId);
+    
+    // Show loading state
+    document.getElementById('summary-content').innerHTML = '<div class="flex justify-center"><i class="fas fa-spinner fa-spin text-3xl text-blue-500"></i></div>';
+    document.getElementById('candidate-info').innerHTML = '<div class="flex justify-center"><i class="fas fa-spinner fa-spin text-xl text-blue-500"></i></div>';
+    document.getElementById('qa-content').innerHTML = '<div class="flex justify-center"><i class="fas fa-spinner fa-spin text-3xl text-blue-500"></i></div>';
+    
+    // Fetch interview data
+    fetch(`/get_summary?interview_id=${interviewId}`)
+        .then(response => response.json())
+        .then(data => {
+            // Fill candidate info
+            const candidate = data.candidate || {};
+            document.getElementById('candidate-info').innerHTML = `
+                <div class="grid grid-cols-2 gap-2">
+                    <div><span class="font-semibold">Name:</span> ${candidate.name || 'Not provided'}</div>
+                    <div><span class="font-semibold">Email:</span> ${candidate.email || 'Not provided'}</div>
+                    <div><span class="font-semibold">Position:</span> ${formatPosition(candidate.position || 'general')}</div>
+                    <div><span class="font-semibold">Status:</span> <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Completed</span></div>
+                </div>
+            `;
+            
+            // Fill summary
+            document.getElementById('summary-content').innerHTML = data.summary || 'No summary available';
+            
+            // Fill interview notes
+            document.getElementById('interview-notes').value = data.notes || '';
+            
+            // Calculate metrics
+            const questions = data.questions || [];
+            document.getElementById('question-count').textContent = questions.length;
+            
+            // Average response length (characters)
+            const responses = questions.filter(q => q.answer).map(q => q.answer.length);
+            const avgLength = responses.length > 0 ? Math.round(responses.reduce((a, b) => a + b, 0) / responses.length) : 0;
+            document.getElementById('avg-response-length').textContent = avgLength + ' chars';
+            
+            // Interview duration (mock data)
+            document.getElementById('interview-duration').textContent = '12:45';
+            
+            // Positive emotions ratio
+            const emotionCounts = data.emotion_counts || {};
+            const positiveCount = (emotionCounts['Happy'] || 0) + (emotionCounts['Surprise'] || 0);
+            const totalCount = Object.values(emotionCounts).reduce((a, b) => a + b, 0);
+            const positiveRatio = totalCount > 0 ? Math.round((positiveCount / totalCount) * 100) : 0;
+            document.getElementById('positive-ratio').textContent = positiveRatio + '%';
+            
+            // Fill Q&A section
+            let qaHTML = '';
+            questions.forEach((q, index) => {
+                qaHTML += `
+                    <div class="bg-gray-50 rounded-md p-4">
+                        <div class="font-semibold text-blue-600 mb-2">Q${index+1}: ${q.text}</div>
+                        <div class="pl-4 border-l-2 border-blue-300">${q.answer || 'No answer provided'}</div>
+                    </div>
+                `;
+            });
+            document.getElementById('qa-content').innerHTML = qaHTML || 'No Q&A data available';
+            
+            // Fill emotion analysis tab
+            fillEmotionAnalysis(interviewId, emotionCounts, questions);
+            
+            // Update emotion summary chart
+            updateEmotionSummaryChart(emotionCounts);
+        })
+        .catch(error => {
+            console.error('Error fetching interview summary:', error);
+            document.getElementById('summary-content').innerHTML = 'Error loading interview summary. Please try again.';
+        });
+}
+
+// Function to fill emotion analysis tab
+function fillEmotionAnalysis(interviewId, emotionCounts, questions) {
+    // Mock emotion analysis
+    const analysisHTML = `
+        <p class="mb-2">The candidate displayed a balanced emotional state throughout the interview.</p>
+        <p class="mb-2">Dominant emotions: <span class="font-semibold">${getTopEmotions(emotionCounts).join(', ')}</span></p>
+        <p class="mb-2">The candidate showed confidence when discussing technical skills, with increased positive emotions.</p>
+        <p class="mb-2">Stress indicators appeared briefly during challenging questions about past experiences.</p>
+        <p>Overall emotional stability rating: <span class="font-semibold text-green-600">Good</span></p>
+    `;
+    document.getElementById('emotion-analysis').innerHTML = analysisHTML;
+    
+    // Question-emotion correlation (mock data)
+    let correlationHTML = '';
+    questions.forEach((q, index) => {
+        const emotions = ['Happy', 'Neutral', 'Sad', 'Angry', 'Surprise', 'Fear', 'Neutral'];
+        const randomEmotion = emotions[Math.floor(Math.random() * emotions.length)];
+        let emotionClass = 'text-gray-600';
+        
+        if (randomEmotion === 'Happy') emotionClass = 'text-green-600';
+        else if (randomEmotion === 'Sad') emotionClass = 'text-blue-600';
+        else if (randomEmotion === 'Angry') emotionClass = 'text-red-600';
+        else if (randomEmotion === 'Surprise') emotionClass = 'text-yellow-600';
+        
+        correlationHTML += `
+            <div class="mb-3 pb-2 border-b border-gray-200">
+                <div class="font-semibold">Q${index+1}:</div>
+                <div class="text-sm text-gray-600 truncate">${q.text}</div>
+                <div class="mt-1">
+                    <span class="font-semibold">Primary Emotion:</span> 
+                    <span class="${emotionClass}">
+                        <i class="fas fa-${getEmotionIcon(randomEmotion)} mr-1"></i>
+                        ${randomEmotion}
+                    </span>
+                </div>
+            </div>
+        `;
+    });
+    
+    document.getElementById('question-emotion-list').innerHTML = correlationHTML || 'No question-emotion data available';
+}
+
+// Function to update emotion summary chart
+function updateEmotionSummaryChart(emotionCounts) {
+    // Destroy previous chart if exists
+    if (window.emotionSummaryChart) {
+        window.emotionSummaryChart.destroy();
+    }
+    
+    const labels = Object.keys(emotionCounts);
+    const data = Object.values(emotionCounts);
+    const backgroundColors = labels.map(label => {
+        if (label === 'Happy') return 'rgba(75, 192, 192, 0.7)';
+        else if (label === 'Sad') return 'rgba(54, 162, 235, 0.7)';
+        else if (label === 'Angry') return 'rgba(255, 99, 132, 0.7)';
+        else if (label === 'Surprise') return 'rgba(255, 205, 86, 0.7)';
+        else if (label === 'Fear') return 'rgba(153, 102, 255, 0.7)';
+        else if (label === 'Disgust') return 'rgba(255, 159, 64, 0.7)';
+        else return 'rgba(201, 203, 207, 0.7)'; // Neutral
+    });
+    
+    const borderColors = backgroundColors.map(color => color.replace('0.7)', '1)'));
+    
+    const ctx = document.getElementById('emotion-summary-chart').getContext('2d');
+    window.emotionSummaryChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: backgroundColors,
+                borderColor: borderColors,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'right',
+                }
+            }
+        }
+    });
+}
+
+// Function to filter interviews
+function filterInterviews() {
+    const searchTerm = document.getElementById('search').value.toLowerCase();
+    const positionFilter = document.getElementById('position-filter').value;
+    const dateFilter = document.getElementById('date-filter').value;
+    
+    const rows = document.querySelectorAll('#interviews-table-body tr');
+    let visibleCount = 0;
+    
+    rows.forEach(row => {
+        const candidateName = row.querySelector('td:first-child .text-sm.font-medium').textContent.toLowerCase();
+        const candidateEmail = row.querySelector('td:first-child .text-sm.text-gray-500').textContent.toLowerCase();
+        const position = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+        const date = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+        
+        // Check search term
+        const matchesSearch = searchTerm === '' || 
+                              candidateName.includes(searchTerm) || 
+                              candidateEmail.includes(searchTerm);
+        
+        // Check position filter
+        const matchesPosition = positionFilter === '' || position.includes(positionFilter);
+        
+        // Check date filter (simplified)
+        let matchesDate = true;
+        if (dateFilter === 'today' && !date.includes(getTodayDate())) {
+            matchesDate = false;
+        } else if (dateFilter === 'week' && !isWithinLastWeek(date)) {
+            matchesDate = false;
+        } else if (dateFilter === 'month' && !isWithinLastMonth(date)) {
+            matchesDate = false;
+        }
+        
+        // Show/hide row
+        if (matchesSearch && matchesPosition && matchesDate) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+    
+    // Update showing count
+    document.getElementById('showing-count').textContent = visibleCount;
+    
+    // Update pagination buttons
+    document.getElementById('prev-page').classList.toggle('disabled', true);
+    document.getElementById('next-page').classList.toggle('disabled', visibleCount <= 10);
+}
+
+// Helper functions
+function formatPosition(position) {
+    return position.split('_')
+                   .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                   .join(' ');
+}
+
+function getEmotionIcon(emotion) {
+    switch(emotion) {
+        case 'Happy': return 'smile-beam';
+        case 'Sad': return 'sad-tear';
+        case 'Angry': return 'angry';
+        case 'Surprise': return 'surprise';
+        case 'Fear': return 'grimace';
+        case 'Disgust': return 'tired';
+        default: return 'meh';
+    }
+}
+
+function getTopEmotions(emotionCounts) {
+    const sortedEmotions = Object.entries(emotionCounts)
+                                 .sort((a, b) => b[1] - a[1]);
+    return sortedEmotions.slice(0, 2).map(item => item[0]);
+}
+
+function getTodayDate() {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+}
+
+function isWithinLastWeek(dateStr) {
+    // Simplified check - in real implementation, parse the date and compare
+    return true;
+}
+
+function isWithinLastMonth(dateStr) {
+    // Simplified check - in real implementation, parse the date and compare
+    return true;
+}
+});
+</script>
+</body>
+</html>
